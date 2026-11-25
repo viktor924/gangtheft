@@ -17,6 +17,8 @@ from engine.world.world_manager import WorldManager
 from engine.world.world_renderer import WorldRenderer
 from engine.physics.physics_world import PhysicsWorld
 from engine.physics.character_controller import CharacterController
+from engine.world.world_object_manager import WorldObjectManager
+from engine.world.world_object_renderer import WorldObjectRenderer
 
 
 class Engine:
@@ -50,6 +52,9 @@ class Engine:
         self.world_manager = None
         self.world_renderer = None
         self.world_transform = None
+        self.world_object_manager = None
+        self.world_object_renderer = None
+        self.test_game_object = None
 
         self.physics_world = None
         self.player = None
@@ -132,6 +137,20 @@ class Engine:
                 self.gpu,
                 self.world_manager
             )
+
+            # ======================================
+            # WORLD OBJECT SYSTEM
+            # ======================================
+
+            print("[Engine] Initializing world object system...")
+
+            self.world_object_manager = WorldObjectManager()
+
+            self.world_object_renderer = WorldObjectRenderer(
+                self.renderer
+            )
+
+            print("[Engine] World object system initialized.")
 
             # ======================================
             # PHYSICS SYSTEM
@@ -287,6 +306,41 @@ class Engine:
                 colors
             )
 
+            # ======================================
+            # TEST GAME OBJECT
+            # ======================================
+
+            terrain_height = self.world_renderer.terrain_generator.get_height(
+                5.0,
+                0.0
+            )
+
+            self.test_game_object = self.world_object_manager.create_object(
+                name="ObjectSystemCube",
+                mesh=self.mesh,
+                position=Vector3(
+                    5.0,
+                    terrain_height,
+                    0.0
+                ),
+                rotation=Vector3(
+                    0.0,
+                    0.0,
+                    0.0
+                ),
+                scale=Vector3(
+                    1.0,
+                    1.0,
+                    1.0
+                ),
+                color=(
+                    0.2,
+                    0.8,
+                    1.0,
+                    1.0
+                )
+            )
+
             # Objektum transzformáció
             self.transform = Transform(
                 position=Vector3(0.0, 1.8, 0.0),
@@ -415,6 +469,13 @@ class Engine:
                 )
             )
 
+        # ======================================
+        # WORLD OBJECT UPDATE
+        # ======================================
+
+        if self.world_object_manager is not None:
+            self.world_object_manager.update(delta_time)
+
 
     def render(self):
         if (
@@ -464,6 +525,21 @@ class Engine:
             self.camera,
             self.world_transform.get_matrix()
         )
+
+        # ======================================
+        # WORLD OBJECT RENDERING
+        # ======================================
+
+        if (
+            self.world_object_renderer is not None
+            and self.world_object_manager is not None
+        ):
+
+            self.world_object_renderer.render(
+                self.world_object_manager,
+                self.shader,
+                self.camera
+            )
 
     def run(self):
         if self.running:
@@ -517,6 +593,16 @@ class Engine:
         if self.physics_world is not None:
             self.physics_world.close()
             self.physics_world = None
+
+        if self.world_object_renderer is not None:
+            self.world_object_renderer.close()
+            self.world_object_renderer = None
+
+        if self.world_object_manager is not None:
+            self.world_object_manager.close()
+            self.world_object_manager = None
+
+        self.test_game_object = None
 
         if self.world_renderer:
             self.world_renderer.close()

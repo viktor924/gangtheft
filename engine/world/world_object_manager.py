@@ -1,4 +1,6 @@
 
+from engine.world.game_object import GameObject
+
 class WorldObjectManager:
 
     def __init__(self):
@@ -8,6 +10,38 @@ class WorldObjectManager:
         self.initialized = True
 
         print("[WorldObjectManager] Initialized.")
+
+    # ======================================
+    # CREATE OBJECT
+    # ======================================
+
+    def create_object(
+        self,
+        name="GameObject",
+        mesh=None,
+        position=None,
+        rotation=None,
+        scale=None,
+        color=(1.0, 1.0, 1.0, 1.0)
+    ):
+
+        if not self.initialized:
+            raise RuntimeError(
+                "WorldObjectManager is not initialized."
+            )
+
+        game_object = GameObject(
+            name=name,
+            mesh=mesh,
+            position=position,
+            rotation=rotation,
+            scale=scale,
+            color=color
+        )
+
+        self.add_object(game_object)
+
+        return game_object
 
     # ======================================
     # ADD OBJECT

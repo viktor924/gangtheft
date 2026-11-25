@@ -1,15 +1,20 @@
 
-class ObjectRenderer:
+class WorldObjectRenderer:
 
     def __init__(self, renderer):
 
         self.renderer = renderer
 
         self.initialized = True
+
         self.rendered_objects = 0
         self.skipped_objects = 0
 
-        print("[ObjectRenderer] Initialized.")
+        print("[WorldObjectRenderer] Initialized.")
+
+    # ======================================
+    # RENDER OBJECTS
+    # ======================================
 
     def render(
         self,
@@ -24,8 +29,12 @@ class ObjectRenderer:
         if object_manager is None:
             return
 
+        if shader is None or camera is None:
+            return
+
         shader.use()
 
+        # Camera matrices
         shader.set_matrix4(
             "uView",
             camera.get_view_matrix()
@@ -43,32 +52,39 @@ class ObjectRenderer:
 
         for game_object in objects:
 
+            # Skip invalid objects
             if not game_object.initialized:
                 self.skipped_objects += 1
                 continue
 
+            # Skip inactive objects
             if not game_object.active:
                 self.skipped_objects += 1
                 continue
 
+            # Skip invisible objects
             if not game_object.visible:
                 self.skipped_objects += 1
                 continue
 
+            # Skip objects without mesh
             if game_object.mesh is None:
                 self.skipped_objects += 1
                 continue
 
+            # Object transformation
             shader.set_matrix4(
                 "uModel",
                 game_object.get_matrix()
             )
 
+            # Object color
             shader.set_vector4(
                 "uColor",
                 *game_object.color
             )
 
+            # Draw object
             self.renderer.draw_mesh(
                 game_object.mesh,
                 shader
@@ -76,11 +92,19 @@ class ObjectRenderer:
 
             self.rendered_objects += 1
 
+    # ======================================
+    # STATISTICS
+    # ======================================
+
     def get_rendered_count(self):
         return self.rendered_objects
 
     def get_skipped_count(self):
         return self.skipped_objects
+
+    # ======================================
+    # SHUTDOWN
+    # ======================================
 
     def close(self):
 
@@ -88,6 +112,10 @@ class ObjectRenderer:
             return
 
         self.renderer = None
+
         self.initialized = False
 
-        print("[ObjectRenderer] Shutdown complete.")
+        self.rendered_objects = 0
+        self.skipped_objects = 0
+
+        print("[WorldObjectRenderer] Shutdown complete.")
