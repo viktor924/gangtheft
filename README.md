@@ -285,7 +285,7 @@ git clone https://github.com/viktor924/gangtheft.git
 Navigate to the project directory:
 
 ```bash
-cd Viktor3D
+cd gangtheft
 ```
 
 Run the engine:
