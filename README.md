@@ -60,9 +60,12 @@ Current controls:
 | S | Move backward |
 | A | Move left |
 | D | Move right |
+| F | Enter/Exit Vehiles |
+| T | Time |
 | Shift | Sprint |
 | Space | Jump |
 | Mouse | Look around |
+| Tab | Mouse lock On/Off |
 
 ### Mathematics System
 Custom mathematical modules developed specifically for the engine.
@@ -252,7 +255,6 @@ Viktor3D/
 │   │
 │   └── world/
 │
-├── tests/
 │
 └── run.py
 ```
@@ -302,14 +304,14 @@ The project is actively evolving. Planned development areas include:
 
 - [ ] Runtime object manipulation.
 - [ ] Advanced object management.
-- [ ] Collision detection.
+- [x] Collision detection.
 - [ ] Expanded physics simulation.
 - [ ] 3D model loading.
 - [ ] Material system.
 - [ ] Texture loading and UV mapping.
 - [ ] Lighting and shadow systems.
-- [ ] Building and vegetation placement.
-- [ ] Roads and vehicle systems.
+- [x] Building and vegetation placement.
+- [x] Roads and vehicle systems.
 - [ ] Advanced world streaming.
 - [ ] Rendering optimizations.
 - [ ] Audio engine.
