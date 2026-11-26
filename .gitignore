@@ -1,2 +1,6 @@
 /tests
 *.pyc
+/engine/graphics/shaders/__pycache__
+*.pyc
+/engine/graphics/camera/__pycache__
+*.pyc
