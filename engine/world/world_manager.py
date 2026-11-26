@@ -84,16 +84,6 @@ class WorldManager:
             if key not in required_chunks:
                 chunk.unload()
 
-        print(
-            f"[WorldManager] Player chunk: "
-            f"{self.player_chunk}"
-        )
-
-        print(
-            f"[WorldManager] Active chunks: "
-            f"{len(required_chunks)}"
-        )
-
     def unload_all(self):
 
         for chunk in self.chunks.values():

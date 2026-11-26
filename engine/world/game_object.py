@@ -38,11 +38,6 @@ class GameObject:
         self.active = True
         self.initialized = True
 
-        print(
-            f"[GameObject] Created: {self.name} "
-            f"(ID: {self.id})"
-        )
-
     def set_mesh(self, mesh):
         self.mesh = mesh
 
@@ -79,11 +74,6 @@ class GameObject:
 
         self.mesh = None
         self.initialized = False
-
-        print(
-            f"[GameObject] Destroyed: {self.name} "
-            f"(ID: {self.id})"
-        )
 
     def __repr__(self):
         return (

@@ -17,17 +17,21 @@ class Camera:
     ):
 
         # Camera position
-        self.position = position or Vector3(0.0, 0.0, 3.0)
+        self.position = (
+            position.copy()
+            if position is not None
+            else Vector3(0.0, 0.0, 3.0)
+        )
 
         # Camera rotation
         self.yaw = -90.0
         self.pitch = 0.0
 
         # Projection settings
-        self.fov = fov
-        self.aspect_ratio = aspect_ratio
-        self.near = near
-        self.far = far
+        self.fov = float(fov)
+        self.aspect_ratio = float(aspect_ratio)
+        self.near = float(near)
+        self.far = float(far)
 
         # Camera direction
         self.world_up = Vector3(0.0, 1.0, 0.0)
@@ -36,6 +40,10 @@ class Camera:
         self.right = Vector3(1.0, 0.0, 0.0)
         self.up = Vector3(0.0, 1.0, 0.0)
 
+        # Mouse rotation settings
+        self.sensitivity = 0.12
+
+        # Initialize direction vectors
         self.update_vectors()
 
     # ======================================
@@ -44,13 +52,13 @@ class Camera:
 
     def update_vectors(self):
 
-        yaw = math.radians(self.yaw)
-        pitch = math.radians(self.pitch)
+        yaw_rad = math.radians(self.yaw)
+        pitch_rad = math.radians(self.pitch)
 
         direction = Vector3(
-            math.cos(yaw) * math.cos(pitch),
-            math.sin(pitch),
-            math.sin(yaw) * math.cos(pitch)
+            math.cos(yaw_rad) * math.cos(pitch_rad),
+            math.sin(pitch_rad),
+            math.sin(yaw_rad) * math.cos(pitch_rad)
         )
 
         self.front = direction.normalized()
@@ -64,40 +72,61 @@ class Camera:
         ).normalized()
 
     # ======================================
-    # ROTATION
+    # CAMERA ROTATION
     # ======================================
 
-    def rotate(self, mouse_dx, mouse_dy, sensitivity=0.1):
+    def rotate(
+        self,
+        mouse_dx,
+        mouse_dy,
+        sensitivity=None
+    ):
 
-        self.yaw += mouse_dx * sensitivity
-        self.pitch -= mouse_dy * sensitivity
+        if sensitivity is None:
+            sensitivity = self.sensitivity
 
+        # Horizontal rotation
+        self.yaw += float(mouse_dx) * sensitivity
+
+        # Vertical rotation
+        self.pitch -= float(mouse_dy) * sensitivity
+
+        # Prevent camera flipping
         self.pitch = max(
             -89.0,
             min(89.0, self.pitch)
         )
 
+        # Update direction immediately
         self.update_vectors()
 
     # ======================================
-    # MOVEMENT
+    # CAMERA MOVEMENT
     # ======================================
 
     def move_forward(self, amount):
 
-        self.position = self.position + self.front * amount
+        self.position = (
+            self.position + self.front * amount
+        )
 
     def move_backward(self, amount):
 
-        self.position = self.position - self.front * amount
+        self.position = (
+            self.position - self.front * amount
+        )
 
     def move_right(self, amount):
 
-        self.position = self.position + self.right * amount
+        self.position = (
+            self.position + self.right * amount
+        )
 
     def move_left(self, amount):
 
-        self.position = self.position - self.right * amount
+        self.position = (
+            self.position - self.right * amount
+        )
 
     def move_up(self, amount):
 
@@ -135,7 +164,7 @@ class Camera:
         )
 
     # ======================================
-    # SETTINGS
+    # CAMERA SETTINGS
     # ======================================
 
     def set_aspect_ratio(self, width, height):
@@ -143,11 +172,14 @@ class Camera:
         if height <= 0:
             return
 
-        self.aspect_ratio = width / height
+        self.aspect_ratio = float(width) / float(height)
 
     def set_fov(self, fov):
 
-        self.fov = max(1.0, min(120.0, fov))
+        self.fov = max(
+            1.0,
+            min(120.0, float(fov))
+        )
 
     def set_position(self, position):
 
@@ -156,3 +188,14 @@ class Camera:
     def get_position(self):
 
         return self.position.copy()
+
+    # ======================================
+    # CAMERA ROTATION SETTINGS
+    # ======================================
+
+    def set_sensitivity(self, sensitivity):
+
+        self.sensitivity = max(
+            0.01,
+            min(2.0, float(sensitivity))
+        )
