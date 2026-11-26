@@ -1,6 +1,6 @@
 
 import ctypes
-import time
+from ctypes import wintypes
 
 
 # ==========================================
@@ -9,33 +9,42 @@ import time
 
 user32 = ctypes.windll.user32
 
-
 class POINT(ctypes.Structure):
     _fields_ = [
-        ("x", ctypes.c_long),
-        ("y", ctypes.c_long)
+        ("x", wintypes.LONG),
+        ("y", wintypes.LONG)
     ]
 
+
+# Windows API definitions
 
 user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
 user32.GetAsyncKeyState.restype = ctypes.c_short
 
-user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]
-user32.GetCursorPos.restype = ctypes.c_bool
+user32.GetCursorPos.argtypes = [
+    ctypes.POINTER(POINT)
+]
+user32.GetCursorPos.restype = wintypes.BOOL
 
 user32.ScreenToClient.argtypes = [
-    ctypes.c_void_p,
+    wintypes.HWND,
     ctypes.POINTER(POINT)
 ]
-user32.ScreenToClient.restype = ctypes.c_bool
+user32.ScreenToClient.restype = wintypes.BOOL
 
 user32.ClientToScreen.argtypes = [
-    ctypes.c_void_p,
+    wintypes.HWND,
     ctypes.POINTER(POINT)
 ]
-user32.ClientToScreen.restype = ctypes.c_bool
+user32.ClientToScreen.restype = wintypes.BOOL
 
-user32.ShowCursor.argtypes = [ctypes.c_bool]
+user32.SetCursorPos.argtypes = [
+    ctypes.c_int,
+    ctypes.c_int
+]
+user32.SetCursorPos.restype = wintypes.BOOL
+
+user32.ShowCursor.argtypes = [wintypes.BOOL]
 user32.ShowCursor.restype = ctypes.c_int
 
 
@@ -77,11 +86,16 @@ class Input:
         self._current_mouse = set()
         self._previous_mouse = set()
 
+        # Mouse position
         self.mouse_x = 0
         self.mouse_y = 0
 
+        # Mouse movement
         self.mouse_delta_x = 0
         self.mouse_delta_y = 0
+
+        # Mouse lock
+        self.mouse_locked = False
 
         self._previous_mouse_x = None
         self._previous_mouse_y = None
@@ -96,13 +110,17 @@ class Input:
 
     def update(self, hwnd):
 
+        # Save previous states
         self._previous_keys = self._current_keys.copy()
         self._previous_mouse = self._current_mouse.copy()
 
         self._current_keys.clear()
         self._current_mouse.clear()
 
-        # Keyboard polling
+        # ==================================
+        # KEYBOARD POLLING
+        # ==================================
+
         for key in range(1, 256):
 
             state = user32.GetAsyncKeyState(key)
@@ -110,7 +128,10 @@ class Input:
             if state & 0x8000:
                 self._current_keys.add(key)
 
-        # Mouse buttons
+        # ==================================
+        # MOUSE BUTTONS
+        # ==================================
+
         for button in (
             self.MOUSE_LEFT,
             self.MOUSE_RIGHT,
@@ -122,31 +143,50 @@ class Input:
             if state & 0x8000:
                 self._current_mouse.add(button)
 
-        # Mouse position
+        # ==================================
+        # MOUSE POSITION
+        # ==================================
+
         point = POINT()
 
         if user32.GetCursorPos(ctypes.byref(point)):
 
-            user32.ScreenToClient(hwnd, ctypes.byref(point))
+            if user32.ScreenToClient(
+                hwnd,
+                ctypes.byref(point)
+            ):
 
-            self.mouse_x = point.x
-            self.mouse_y = point.y
+                self.mouse_x = point.x
+                self.mouse_y = point.y
 
-        # Mouse movement
-        if self._previous_mouse_x is not None:
+        # ==================================
+        # MOUSE MOVEMENT
+        # ==================================
 
-            self.mouse_delta_x = (
-                self.mouse_x - self._previous_mouse_x
-            )
+        if self.mouse_locked:
 
-            self.mouse_delta_y = (
-                self.mouse_y - self._previous_mouse_y
-            )
+            center_x = self._center_x
+            center_y = self._center_y
+
+            self.mouse_delta_x = self.mouse_x - center_x
+            self.mouse_delta_y = self.mouse_y - center_y
 
         else:
 
-            self.mouse_delta_x = 0
-            self.mouse_delta_y = 0
+            if self._previous_mouse_x is not None:
+
+                self.mouse_delta_x = (
+                    self.mouse_x - self._previous_mouse_x
+                )
+
+                self.mouse_delta_y = (
+                    self.mouse_y - self._previous_mouse_y
+                )
+
+            else:
+
+                self.mouse_delta_x = 0
+                self.mouse_delta_y = 0
 
         self._previous_mouse_x = self.mouse_x
         self._previous_mouse_y = self.mouse_y
@@ -207,34 +247,82 @@ class Input:
 
     def get_mouse_delta(self):
 
-        return self.mouse_delta_x, self.mouse_delta_y
+        return (
+            self.mouse_delta_x,
+            self.mouse_delta_y
+        )
 
     # ======================================
-    # CURSOR
+    # CURSOR VISIBILITY
     # ======================================
 
     def set_cursor_visible(self, visible):
 
-        if visible:
+        while True:
 
-            while user32.ShowCursor(True) < 0:
-                pass
+            result = user32.ShowCursor(bool(visible))
 
-        else:
+            if visible and result >= 0:
+                break
 
-            while user32.ShowCursor(False) >= 0:
-                pass
+            if not visible and result < 0:
+                break
 
-    def set_mouse_position(self, hwnd, x, y):
+    # ======================================
+    # MOUSE LOCK
+    # ======================================
 
-        point = POINT(x, y)
+    def set_mouse_locked(
+        self,
+        hwnd,
+        locked,
+        width,
+        height
+    ):
 
-        user32.ClientToScreen(hwnd, ctypes.byref(point))
+        self.mouse_locked = bool(locked)
 
-        user32.SetCursorPos(point.x, point.y)
+        self._center_x = width // 2
+        self._center_y = height // 2
+
+        self.mouse_delta_x = 0
+        self.mouse_delta_y = 0
 
         self._previous_mouse_x = None
         self._previous_mouse_y = None
+
+        if self.mouse_locked:
+
+            self.set_cursor_visible(False)
+
+            self.set_mouse_position(
+                hwnd,
+                self._center_x,
+                self._center_y
+            )
+
+        else:
+
+            self.set_cursor_visible(True)
+
+    # ======================================
+    # MOUSE POSITION SET
+    # ======================================
+
+    def set_mouse_position(self, hwnd, x, y):
+
+        point = POINT(int(x), int(y))
+
+        if not user32.ClientToScreen(
+            hwnd,
+            ctypes.byref(point)
+        ):
+            return
+
+        user32.SetCursorPos(
+            point.x,
+            point.y
+        )
 
     # ======================================
     # RESET
@@ -253,3 +341,5 @@ class Input:
 
         self._previous_mouse_x = None
         self._previous_mouse_y = None
+
+        self._initialized = False

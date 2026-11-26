@@ -27,11 +27,6 @@ class WorldChunk:
         self.is_generated = False
         self.is_visible = False
 
-        print(
-            f"[WorldChunk] Created chunk "
-            f"({self.chunk_x}, {self.chunk_z})"
-        )
-
     def contains_position(self, x, z):
 
         return (
@@ -47,11 +42,6 @@ class WorldChunk:
 
         self.is_loaded = True
 
-        print(
-            f"[WorldChunk] Loaded "
-            f"({self.chunk_x}, {self.chunk_z})"
-        )
-
     def unload(self):
 
         if not self.is_loaded:
@@ -59,11 +49,6 @@ class WorldChunk:
 
         self.is_visible = False
         self.is_loaded = False
-
-        print(
-            f"[WorldChunk] Unloaded "
-            f"({self.chunk_x}, {self.chunk_z})"
-        )
 
     def set_visible(self, visible):
 
