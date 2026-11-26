@@ -30,20 +30,31 @@ class Shader:
         self.program = 0
         self.initialized = False
 
+        # Uniform location cache
+        self.uniform_cache = {}
+
         self._load_functions()
 
-        vertex_shader = self._compile_shader(
-            GL_VERTEX_SHADER,
-            vertex_source
-        )
-
-        fragment_shader = self._compile_shader(
-            GL_FRAGMENT_SHADER,
-            fragment_source
-        )
+        vertex_shader = 0
+        fragment_shader = 0
 
         try:
+            self.gpu.make_current()
+
+            vertex_shader = self._compile_shader(
+                GL_VERTEX_SHADER,
+                vertex_source
+            )
+
+            fragment_shader = self._compile_shader(
+                GL_FRAGMENT_SHADER,
+                fragment_source
+            )
+
             self.program = self.glCreateProgram()
+
+            if not self.program:
+                raise RuntimeError("Failed to create shader program.")
 
             self.glAttachShader(self.program, vertex_shader)
             self.glAttachShader(self.program, fragment_shader)
@@ -75,8 +86,11 @@ class Shader:
             raise
 
         finally:
-            self.glDeleteShader(vertex_shader)
-            self.glDeleteShader(fragment_shader)
+            if vertex_shader:
+                self.glDeleteShader(vertex_shader)
+
+            if fragment_shader:
+                self.glDeleteShader(fragment_shader)
 
     # ======================================
     # LOAD OPENGL FUNCTIONS
@@ -230,6 +244,23 @@ class Shader:
             ]
         )
 
+        self.glUniform1f = self._load_function(
+            "glUniform1f",
+            None,
+            [ctypes.c_int, ctypes.c_float]
+        )
+
+        self.glUniform3f = self._load_function(
+            "glUniform3f",
+            None,
+            [
+                ctypes.c_int,
+                ctypes.c_float,
+                ctypes.c_float,
+                ctypes.c_float
+            ]
+        )
+
     # ======================================
     # COMPILE SHADER
     # ======================================
@@ -301,7 +332,10 @@ class Shader:
             buffer
         )
 
-        return buffer.value.decode("utf-8", errors="replace")
+        return buffer.value.decode(
+            "utf-8",
+            errors="replace"
+        )
 
     def _get_program_log(self, program):
 
@@ -325,7 +359,10 @@ class Shader:
             buffer
         )
 
-        return buffer.value.decode("utf-8", errors="replace")
+        return buffer.value.decode(
+            "utf-8",
+            errors="replace"
+        )
 
     # ======================================
     # USE SHADER
@@ -339,20 +376,31 @@ class Shader:
         self.glUseProgram(self.program)
 
     # ======================================
-    # UNIFORM VARIABLES
+    # UNIFORM CACHE
     # ======================================
 
     def get_uniform_location(self, name):
+
+        if name in self.uniform_cache:
+            return self.uniform_cache[name]
 
         location = self.glGetUniformLocation(
             self.program,
             name.encode("utf-8")
         )
 
+        self.uniform_cache[name] = location
+
         if location == -1:
-            print(f"[Shader] Warning: Uniform not found: {name}")
+            print(
+                f"[Shader] Warning: Uniform not found: {name}"
+            )
 
         return location
+
+    # ======================================
+    # UNIFORM VARIABLES
+    # ======================================
 
     def set_matrix4(self, name, matrix):
 
@@ -363,7 +411,16 @@ class Shader:
         if location == -1:
             return
 
-        values = (ctypes.c_float * 16)(*matrix.to_list())
+        matrix_values = matrix.to_list()
+
+        if len(matrix_values) != 16:
+            raise ValueError(
+                f"Uniform '{name}' must contain 16 values."
+            )
+
+        values = (
+            ctypes.c_float * 16
+        )(*matrix_values)
 
         self.glUniformMatrix4fv(
             location,
@@ -383,11 +440,37 @@ class Shader:
 
         self.glUniform4f(
             location,
-            x,
-            y,
-            z,
-            w
+            float(x),
+            float(y),
+            float(z),
+            float(w)
         )
+
+    def set_float(self, name, value):
+
+        self.use()
+
+        location = self.get_uniform_location(name)
+
+        if location != -1:
+            self.glUniform1f(
+                location,
+                float(value)
+            )
+
+    def set_vector3(self, name, x, y, z):
+
+        self.use()
+
+        location = self.get_uniform_location(name)
+
+        if location != -1:
+            self.glUniform3f(
+                location,
+                float(x),
+                float(y),
+                float(z)
+            )
 
     # ======================================
     # SHUTDOWN
@@ -395,12 +478,17 @@ class Shader:
 
     def close(self):
 
-        if self.program:
+        if not self.program:
+            return
 
-            self.glUseProgram(0)
-            self.glDeleteProgram(self.program)
+        self.gpu.make_current()
 
-            self.program = 0
-            self.initialized = False
+        self.glUseProgram(0)
+        self.glDeleteProgram(self.program)
 
-            print("[Shader] Shader destroyed.")
+        self.program = 0
+        self.initialized = False
+
+        self.uniform_cache.clear()
+
+        print("[Shader] Shader destroyed.")

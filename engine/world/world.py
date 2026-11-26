@@ -31,9 +31,6 @@ class World:
         self.initialized = True
 
         print("[World] World initialized.")
-        print(f"[World] Size: {self.width} x {self.depth}")
-        print(f"[World] Chunk size: {self.chunk_size}")
-        print(f"[World] Chunks: {self.chunks_x} x {self.chunks_z}")
 
     def world_to_chunk(self, x, z):
 
